@@ -8,6 +8,11 @@
 技术栈：Next.js 15（App Router）+ TypeScript + Tailwind CSS + Supabase。
 目标部署环境：Vercel + Supabase。
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaihebian%2FWuhanClinic&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY&envDescription=Supabase%20%E7%9A%84%20Project%20URL%20%E5%92%8C%20API%20key%EF%BC%88%E7%B1%BB%E5%9E%8B%E9%80%89%20publishable%20%E6%88%96%20anon%2Fpublic%EF%BC%89&project-name=wuhan-clinic&repository-name=WuhanClinic)
+
+> 部署前**务必**先看 [第 3 节](#3-接入-supabase5-分钟) 接好 Supabase，再看 [第 4 节](#4-部署到-vercel) 的域名注意事项
+> —— Vercel 默认域名在国内打不开。
+
 ---
 
 ## 1. 本地跑起来
@@ -106,28 +111,55 @@ npm run dev
 
 ## 4. 部署到 Vercel
 
-```bash
-# 首次
-npm i -g vercel
-vercel            # 一路回车，Framework 会自动识别为 Next.js
-vercel --prod
-```
+### 一键导入
 
-或者走网页版：
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fzaihebian%2FWuhanClinic&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY&envDescription=Supabase%20%E7%9A%84%20Project%20URL%20%E5%92%8C%20API%20key%EF%BC%88%E7%B1%BB%E5%9E%8B%E9%80%89%20publishable%20%E6%88%96%20anon%2Fpublic%EF%BC%89&project-name=wuhan-clinic&repository-name=WuhanClinic)
 
-1. 把 `dental-clinic` 推到 GitHub。
-2. Vercel → Add New → Project → 选中该仓库 → Framework Preset 选 **Next.js**。
-3. 在 **Environment Variables** 里加两条（名字和 `.env.local` 完全一致）：
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Deploy。
+点按钮 → 授权 GitHub → 它会自动把两个环境变量名填好，你只需要**粘贴对应的值** → Deploy。
 
-> ⚠️ 这两个变量是**打包时**写进前端代码的，改完必须 **Redeploy** 才生效
-> （Deployments → 最新一条 → ⋯ → Redeploy）。
->
-> ⚠️ `.env.local` 已被 `.gitignore` 排除，不会推到 GitHub，所以 Vercel 上必须手动再填一次。
+### 或者手动导入
 
-之后每次 push 到主分支都会自动重新部署。
+1. Vercel → **Add New → Project** → 选中 `WuhanClinic` 仓库。
+2. Framework Preset 会自动识别成 **Next.js**，不用改。
+3. 展开 **Environment Variables**，加两条（名字必须完全一致）：
+
+   | Name | Value |
+   |---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | 你的 `https://xxx.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 你的 `sb_publishable_xxx` 或 `eyJ...` |
+
+4. 点 **Deploy**，等 1–2 分钟。
+
+### ⚠️ 部署后必须绑自定义域名
+
+**Vercel 默认送的 `xxx.vercel.app` 域名在中国大陆被 DNS 污染，国内打不开。**
+医生护士用浏览器直接访问会白屏。解决方式：绑一个自己的域名。
+
+1. 项目 → **Settings → Domains** → 填入你的域名（如 `clinic.example.com`）→ Add。
+2. Vercel 会告诉你需要加什么 DNS 记录（通常是一条 CNAME 指向 `cname.vercel-dns.com`）。
+3. 去你的域名商后台加上这条记录，等几分钟生效。
+4. 生效后 Vercel 会自动签发 HTTPS 证书。
+
+> 用海外域名 + Vercel，**不需要备案**。用国内域名商注册的域名也可以，只要 DNS 能解析到 Vercel。
+
+### 两个坑
+
+- `NEXT_PUBLIC_*` 是**打包时**写死进前端代码的。**改完环境变量必须 Redeploy**
+  （Deployments → 最新一条 → ⋯ → Redeploy），否则不生效。
+- `.env.local` 已被 `.gitignore` 排除，**不会推到 GitHub**，所以 Vercel 上必须手动再填一次。
+
+之后每次 push 到 `main` 分支都会自动重新部署。
+
+### 部署完自检
+
+打开线上地址，看左侧边栏最底部：
+
+| 显示 | 含义 |
+|---|---|
+| 🟢 已连接 Supabase | 成功，数据存云端，多台设备互通 |
+| 🟠 本地演示模式 | 环境变量没生效 → 检查变量名拼写，然后 Redeploy |
+
+再随便新建一条病例，然后去 Supabase 的 **Table Editor → cases** 刷新，能看到这行数据就算完全打通了。
 
 ---
 
