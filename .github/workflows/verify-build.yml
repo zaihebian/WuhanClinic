@@ -1,0 +1,41 @@
+name: verify-build
+
+# 临时诊断用：在 Linux + Node 22 上复现 Vercel 的构建环境。
+# 定位完 Vercel 构建失败原因后可以删掉这个文件。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 环境信息
+        run: |
+          uname -a
+          node -v
+          npm -v
+          echo "--- 仓库文件数 ---"
+          git ls-files | wc -l
+
+      - name: 安装依赖 (npm ci)
+        run: npm ci
+
+      - name: 构建 (next build)
+        run: npm run build
+
+      - name: 构建产物
+        if: always()
+        run: |
+          echo "--- .next 顶层 ---"
+          ls -la .next 2>/dev/null | head -30
