@@ -147,6 +147,9 @@ npm run dev
 - `NEXT_PUBLIC_*` 是**打包时**写死进前端代码的。**改完环境变量必须 Redeploy**
   （Deployments → 最新一条 → ⋯ → Redeploy），否则不生效。
 - `.env.local` 已被 `.gitignore` 排除，**不会推到 GitHub**，所以 Vercel 上必须手动再填一次。
+- **Team 项目默认开启 Deployment Protection**：带随机串的部署地址（`项目名-xxxx-团队名.vercel.app`）
+  会跳 Vercel 登录页。生产域名（`项目名.vercel.app` 或自定义域名）不受影响。
+  如果门诊同事打开被要求登录，去 **Settings → Deployment Protection** 关掉。
 
 之后每次 push 到 `main` 分支都会自动重新部署。
 
@@ -161,27 +164,53 @@ npm run dev
 
 再随便新建一条病例，然后去 Supabase 的 **Table Editor → cases** 刷新，能看到这行数据就算完全打通了。
 
-### 常见问题：项目建好了，但显示 "No Production Deployment"
+### 常见问题：显示 "No Production Deployment"，构建一直失败
 
 现象：项目 Overview 显示 `No Production Deployment / Your Production Domain is not serving traffic`，
-但 Production Checklist 里 **Connect Git Repository 已经有 ✓**。
+顶部 **Deployments** 里每次构建都失败，而且**几乎看不到有用的构建日志**。
 
-原因：Vercel 在「连接 Git 仓库」这一步**不一定会自动跑首次构建**，项目建好了但一次都没部署过。
+#### 本项目的真实原因（2026-10-02 实测确认）
 
-解决：**往 `main` 分支推一次提交**即可触发。Vercel 界面原话就是
-`To update your Production Deployment, push to the main branch.`
+`package.json` 里锁的 `next@15.1.6` 命中 **CVE-2025-66478（React2Shell，CVSS 10.0 远程代码执行）**。
+Vercel 官方公告原话：
 
-如果推了还是没反应，依次检查：
+> If you're deploying to Vercel, the platform already **blocks new deployments of vulnerable versions**.
 
-| 检查项 | 位置 |
+即：**Vercel 会直接拒绝构建含已知漏洞的 Next.js 版本**，只回一句通用的
+`Deployment has failed`，不告诉你真正原因 —— 所以看起来像「莫名其妙的失败」。
+
+**修复**：升到该漏洞的补丁版本再推一次（15.1.x 线是 `15.1.9`，本项目已升到 `15.5.27`）。
+
+```bash
+npm install next@15.5.27
+git add -A && git commit -m "chore: 升级 next 修复 CVE-2025-66478"
+git push
+```
+
+> 漏洞影响 Next.js 15.x / 16.x 的 App Router 应用。补丁版本：
+> 15.0.5 / 15.1.9 / 15.2.6 / 15.3.6 / 15.4.8 / 15.5.7 / 16.0.7。
+> 也可以跑 `npx fix-react2shell-next` 自动升。
+
+#### 怎么区分「Vercel 拒绝」和「代码有问题」
+
+在 GitHub 上跑一次 Actions，执行**完全相同**的 `npm ci && npm run build`：
+
+- Linux 上成功、Vercel 上失败 → **100% 是 Vercel 侧**（版本拦截 / 项目配置 / 团队权限），别再改代码
+- 两边都失败 → 按构建日志改代码
+
+仓库里的 `.github/workflows/verify-build.yml` 就是干这个用的，不需要可以删。
+
+#### 其他「构建失败且没有日志」的原因（Vercel 官方列出）
+
+| 触发条件 | 检查位置 |
 |---|---|
-| Production Branch 是不是 `main` | Settings → Git |
-| GitHub App 有没有给这个仓库权限 | GitHub → Settings → Applications → Vercel |
-| 有没有失败的构建记录 | 项目顶部 **Deployments** 标签页 |
-| 是不是开了 Ignored Build Step | Settings → Git → Ignored Build Step 应为空 |
+| `vercel.json` 语法无效 | 仓库根目录 |
+| 配了 Ignored Build Step | Settings → Git → Ignored Build Step 应为空 |
+| **提交者不是 Vercel 团队成员** | 只影响 Team 项目；确认推代码的 GitHub 账号在团队里 |
+| Marketplace 集成资源预配失败 | 失败部署详情页展开 **Provisioning Integrations** 步骤 |
 
-实在不行就**删掉项目重新导入一次**：项目 Settings → 最底部 Delete Project，
-然后 Add New → Project 重新选仓库，这次导入页会直接触发构建。
+另外确认：Production Branch 是 `main`、Root Directory 留空、Node.js Version 为 `22.x`
+（Settings → Git / Build and Deployment）。
 
 ---
 
