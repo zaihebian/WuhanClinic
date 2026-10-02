@@ -161,6 +161,28 @@ npm run dev
 
 再随便新建一条病例，然后去 Supabase 的 **Table Editor → cases** 刷新，能看到这行数据就算完全打通了。
 
+### 常见问题：项目建好了，但显示 "No Production Deployment"
+
+现象：项目 Overview 显示 `No Production Deployment / Your Production Domain is not serving traffic`，
+但 Production Checklist 里 **Connect Git Repository 已经有 ✓**。
+
+原因：Vercel 在「连接 Git 仓库」这一步**不一定会自动跑首次构建**，项目建好了但一次都没部署过。
+
+解决：**往 `main` 分支推一次提交**即可触发。Vercel 界面原话就是
+`To update your Production Deployment, push to the main branch.`
+
+如果推了还是没反应，依次检查：
+
+| 检查项 | 位置 |
+|---|---|
+| Production Branch 是不是 `main` | Settings → Git |
+| GitHub App 有没有给这个仓库权限 | GitHub → Settings → Applications → Vercel |
+| 有没有失败的构建记录 | 项目顶部 **Deployments** 标签页 |
+| 是不是开了 Ignored Build Step | Settings → Git → Ignored Build Step 应为空 |
+
+实在不行就**删掉项目重新导入一次**：项目 Settings → 最底部 Delete Project，
+然后 Add New → Project 重新选仓库，这次导入页会直接触发构建。
+
 ---
 
 ## 5. ⚠️ 安全提示（重要，请读完）
